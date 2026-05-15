@@ -1,0 +1,20 @@
+{
+  "name": "atp-mqtt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fetches ATP match data and publishes headline and JSON payloads to MQTT.",
+  "scripts": {
+    "start": "node run.js",
+    "fetch": "node run.js",
+    "publish": "node run.js --publish",
+    "publish:hourly": "node run.js --publish --hourly"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "mqtt": "^5.15.1",
+    "yargs": "^17.7.2"
+  }
+}
