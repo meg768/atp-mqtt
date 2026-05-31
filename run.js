@@ -353,7 +353,7 @@ function createHeadline({ liveMatches, upcomingMatches }) {
 
   if (firstLive) {
     return sanitizeHeadlineText(
-      firstLive.score || "Poäng saknas"
+      `${firstLive.label} ${firstLive.score ?? ""}`
     ).replace(/\s+/g, " ").trim();
   }
 

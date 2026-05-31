@@ -120,14 +120,14 @@ Publicerade topics:
 - `atp/live`
 - `atp/upcoming`
 
-`atp` innehåller bara en kort textsträng för displayer. När en match är live är texten endast poängen för den viktigaste live-matchen.
+`atp` innehåller bara en kort textsträng för displayer. När en match är live är texten spelarnamn och poäng för den viktigaste live-matchen.
 
 `atp/summary` innehåller en sammanfattning:
 
 ```json
 {
   "timestamp": "2026-05-15T20:00:00.000Z",
-  "headline": "6-2 5-7 4-2 [40-AD]",
+  "headline": "Sinner-Medvedev 6-2 5-7 4-2 [40-AD]",
   "totals": {
     "matches": 4,
     "live": 1,
