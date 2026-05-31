@@ -348,12 +348,13 @@ function selectImportantMatches(matches) {
 }
 
 function createHeadline({ liveMatches, upcomingMatches }) {
-  const firstLive = liveMatches[0] ?? null;
   const firstUpcoming = upcomingMatches[0] ?? null;
 
-  if (firstLive) {
+  if (liveMatches.length > 0) {
     return sanitizeHeadlineText(
-      `${firstLive.label} ${firstLive.score ?? ""}`
+      liveMatches
+        .map(match => `${match.label} ${match.score ?? ""}`.trim())
+        .join(" • ")
     ).replace(/\s+/g, " ").trim();
   }
 
