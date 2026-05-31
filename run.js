@@ -13,6 +13,8 @@ const TIMEZONE = "Europe/Stockholm";
 const SOURCE_DESCRIPTION = "Kambi/Svenska Spel ATP Oddset";
 const DEFAULT_MAX_LIVE_MATCHES = 3;
 const DEFAULT_MAX_UPCOMING_MATCHES = 3;
+const DEFAULT_LIVE_POLL_SECONDS = 30;
+const DEFAULT_IDLE_POLL_SECONDS = 300;
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
 const EXCLUDED_COMPETITION_TERMS = new Set([
   "wta",
@@ -599,31 +601,17 @@ function createMqttConfig() {
   };
 }
 
-function getTimePartsInTimeZone(date, timeZone) {
-  const formatter = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false
-  });
+function getPollingDelayMilliseconds(snapshot) {
+  const liveSeconds = parsePositiveIntegerEnv(
+    process.env.ATP_MQTT_LIVE_POLL_SECONDS,
+    DEFAULT_LIVE_POLL_SECONDS
+  );
+  const idleSeconds = parsePositiveIntegerEnv(
+    process.env.ATP_MQTT_IDLE_POLL_SECONDS,
+    DEFAULT_IDLE_POLL_SECONDS
+  );
 
-  const parts = formatter.formatToParts(date);
-
-  return parts.reduce((result, part) => {
-    if (part.type === "hour" || part.type === "minute" || part.type === "second") {
-      result[part.type] = Number(part.value);
-    }
-
-    return result;
-  }, {});
-}
-
-function getMillisecondsUntilNextHour(timeZone) {
-  const now = new Date();
-  const { minute = 0, second = 0 } = getTimePartsInTimeZone(now, timeZone);
-  const milliseconds = now.getMilliseconds();
-  return ((60 - minute) * 60 - second) * 1000 - milliseconds;
+  return (snapshot.totals.availableLive > 0 ? liveSeconds : idleSeconds) * 1000;
 }
 
 function sleep(milliseconds) {
@@ -692,13 +680,21 @@ async function executeOnce(argv) {
 
 async function executeHourly(argv) {
   while (true) {
+    let snapshot = null;
+
     try {
-      await executeOnce(argv);
+      snapshot = await executeOnce(argv);
     } catch (error) {
       console.error(`Run failed at ${formatTimestamp(new Date())}: ${error.message}`);
     }
 
-    const milliseconds = getMillisecondsUntilNextHour(TIMEZONE);
+    const milliseconds = snapshot
+      ? getPollingDelayMilliseconds(snapshot)
+      : parsePositiveIntegerEnv(
+          process.env.ATP_MQTT_IDLE_POLL_SECONDS,
+          DEFAULT_IDLE_POLL_SECONDS
+        ) * 1000;
+    console.log(`Nästa uppdatering om ${Math.round(milliseconds / 1000)} sekunder.`);
     await sleep(milliseconds);
   }
 }
@@ -718,7 +714,7 @@ async function main() {
     .option("hourly", {
       type: "boolean",
       default: false,
-      description: "Kör varje hel timme i Europe/Stockholm"
+      description: "Kör kontinuerligt med snabbare polling när matcher är live"
     })
     .help()
     .alias("help", "h")

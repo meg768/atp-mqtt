@@ -31,6 +31,12 @@ För MQTT-output väljer projektet bara de viktigaste matcherna:
 
 Gränserna kan ändras med `ATP_MQTT_MAX_LIVE` och `ATP_MQTT_MAX_UPCOMING`.
 
+Kontinuerlig publicering pollar snabbare när matcher är live:
+
+- standard live: var 30:e sekund
+- standard utan live-match: var 5:e minut
+- ändra med `ATP_MQTT_LIVE_POLL_SECONDS` och `ATP_MQTT_IDLE_POLL_SECONDS`
+
 Den uppströmsfeeden innehåller bland annat:
 
 - `start`
@@ -85,7 +91,7 @@ Eller direkt:
 node run.js
 ```
 
-Timvis publicering:
+Kontinuerlig publicering:
 
 ```bash
 node run.js --publish --hourly
