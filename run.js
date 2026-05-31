@@ -628,6 +628,16 @@ function getPollingDelayMilliseconds(snapshot) {
   return (snapshot.totals.availableLive > 0 ? liveSeconds : idleSeconds) * 1000;
 }
 
+function createScoreSignature(snapshot) {
+  if (snapshot.sections.live.items.length === 0) {
+    return `idle:${snapshot.headline}`;
+  }
+
+  return snapshot.sections.live.items
+    .map(match => `${match.shortLabel}=${match.score ?? ""}`)
+    .join("|");
+}
+
 function sleep(milliseconds) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
@@ -692,12 +702,35 @@ async function executeOnce(argv) {
   return snapshot;
 }
 
+async function publishSnapshotIfChanged(snapshot, mqttConfig, state) {
+  const scoreSignature = createScoreSignature(snapshot);
+
+  if (state.lastScoreSignature === scoreSignature) {
+    console.log("Poängen är oförändrad; hoppar över MQTT-publicering.");
+    return 0;
+  }
+
+  const publishedCount = await publishSnapshotToMqtt(snapshot, mqttConfig);
+  state.lastScoreSignature = scoreSignature;
+  console.log(
+    `Publicerade ${publishedCount} MQTT-meddelanden till ${mqttConfig.topicPrefix} (${snapshot.timestamp}).`
+  );
+  return publishedCount;
+}
+
 async function executeHourly(argv) {
+  const mqttConfig = argv.publish ? createMqttConfig() : null;
+  const publishState = { lastScoreSignature: null };
+
   while (true) {
     let snapshot = null;
 
     try {
-      snapshot = await executeOnce(argv);
+      snapshot = await executeOnce({ ...argv, publish: false });
+
+      if (argv.publish) {
+        await publishSnapshotIfChanged(snapshot, mqttConfig, publishState);
+      }
     } catch (error) {
       console.error(`Run failed at ${formatTimestamp(new Date())}: ${error.message}`);
     }

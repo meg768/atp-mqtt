@@ -36,6 +36,7 @@ Kontinuerlig publicering pollar snabbare när matcher är live:
 - standard live: var 30:e sekund
 - standard utan live-match: var 5:e minut
 - ändra med `ATP_MQTT_LIVE_POLL_SECONDS` och `ATP_MQTT_IDLE_POLL_SECONDS`
+- MQTT publiceras bara när score-signaturen för de utvalda live-matcherna ändras, plus första publiceringen efter processstart
 
 Den uppströmsfeeden innehåller bland annat:
 
