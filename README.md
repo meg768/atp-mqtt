@@ -5,10 +5,9 @@ Det här repot hämtar ATP-/Grand Slam-matchdata direkt från den publika Kambi/
 Första versionen fokuserar på sådant som passar bra på en display:
 
 - live-matcher
-- nästa kommande matcher
 - en kort huvudrad
 
-Det finns ännu ingen separat nyhetsfeed i projektet. "Senaste nytt" betyder därför i första hand live-läge och nästa ATP-match att hålla koll på.
+Det finns ännu ingen separat nyhetsfeed i projektet. "Senaste nytt" betyder därför live-läge.
 
 Projektet är fristående och beror inte på `tennis.egelberg.se` eller något annat lokalt ATP-projekt.
 
@@ -24,12 +23,11 @@ Eftersom Grand Slam-turneringar hos Kambi inte alltid ligger under `/tennis/atp`
 
 För MQTT-output väljer projektet bara de viktigaste matcherna:
 
-- live-matcher först
 - Grand Slam före vanlig ATP
 - Masters/1000 och sena rundor får extra prioritet om feeden exponerar sådan text
-- standardgräns: högst 3 live och 3 kommande matcher
+- standardgräns: högst 3 live-matcher
 
-Gränserna kan ändras med `ATP_MQTT_MAX_LIVE` och `ATP_MQTT_MAX_UPCOMING`.
+Gränsen kan ändras med `ATP_MQTT_MAX_LIVE`.
 
 Kontinuerlig publicering pollar snabbare när matcher är live:
 
@@ -136,9 +134,9 @@ Publicerade topics:
   "timestamp": "2026-05-15T20:00:00.000Z",
   "headline": "Sinner-Medvedev 6-2 5-7 4-2 [40-AD] • Alcaraz-Djokovic 6-4 3-2 [15-0]",
   "totals": {
-    "matches": 5,
+    "matches": 2,
     "live": 2,
-    "upcoming": 3,
+    "upcoming": 0,
     "availableMatches": 7,
     "availableLive": 2,
     "availableUpcoming": 5
@@ -154,14 +152,13 @@ Publicerade topics:
     "timezone": "Europe/Stockholm",
     "upstream": "eu1.offering-api.kambicdn.com",
     "selection": {
-      "maxLive": 3,
-      "maxUpcoming": 3
+      "maxLive": 3
     }
   }
 }
 ```
 
-`atp/live` och `atp/upcoming` använder samma item-schema:
+`atp/live` använder samma item-schema. `atp/upcoming` publiceras fortfarande som en tom lista för att rensa gamla retained-data hos äldre konsumenter.
 
 ```json
 {

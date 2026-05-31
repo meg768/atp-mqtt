@@ -12,7 +12,6 @@ const DEFAULT_ODDSET_API_URL =
 const TIMEZONE = "Europe/Stockholm";
 const SOURCE_DESCRIPTION = "Kambi/Svenska Spel ATP Oddset";
 const DEFAULT_MAX_LIVE_MATCHES = 3;
-const DEFAULT_MAX_UPCOMING_MATCHES = 3;
 const DEFAULT_LIVE_POLL_SECONDS = 30;
 const DEFAULT_IDLE_POLL_SECONDS = 900;
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
@@ -344,10 +343,6 @@ function selectImportantMatches(matches) {
     process.env.ATP_MQTT_MAX_LIVE,
     DEFAULT_MAX_LIVE_MATCHES
   );
-  const maxUpcoming = parsePositiveIntegerEnv(
-    process.env.ATP_MQTT_MAX_UPCOMING,
-    DEFAULT_MAX_UPCOMING_MATCHES
-  );
 
   return {
     liveMatches: matches
@@ -355,17 +350,11 @@ function selectImportantMatches(matches) {
       .sort(compareByImportance)
       .slice(0, maxLive)
       .sort(compareByStart),
-    upcomingMatches: matches
-      .filter(match => match.state === "upcoming")
-      .sort(compareByImportance)
-      .slice(0, maxUpcoming)
-      .sort(compareByStart)
+    upcomingMatches: []
   };
 }
 
-function createHeadline({ liveMatches, upcomingMatches }) {
-  const firstUpcoming = upcomingMatches[0] ?? null;
-
+function createHeadline({ liveMatches }) {
   if (liveMatches.length > 0) {
     return sanitizeHeadlineText(
       liveMatches
@@ -374,13 +363,7 @@ function createHeadline({ liveMatches, upcomingMatches }) {
     ).replace(/\s+/g, " ").trim();
   }
 
-  if (firstUpcoming) {
-    return sanitizeHeadlineText(
-      `${firstUpcoming.shortLabel} ${formatTime(firstUpcoming.start) ?? ""} • ${formatInteger(upcomingMatches.length)} kommande`
-    ).replace(/\s+/g, " ").trim();
-  }
-
-  return "Inga live- eller kommande matcher";
+  return "Inga live-matcher";
 }
 
 function createSummarySnapshot(matches) {
@@ -418,10 +401,6 @@ function createSummarySnapshot(matches) {
         maxLive: parsePositiveIntegerEnv(
           process.env.ATP_MQTT_MAX_LIVE,
           DEFAULT_MAX_LIVE_MATCHES
-        ),
-        maxUpcoming: parsePositiveIntegerEnv(
-          process.env.ATP_MQTT_MAX_UPCOMING,
-          DEFAULT_MAX_UPCOMING_MATCHES
         )
       }
     },
@@ -528,7 +507,7 @@ class AtpCli {
     console.log(`Uppdaterad: ${formatTimestamp(this.snapshot.timestamp)}`);
     console.log(this.snapshot.headline);
     console.log(
-      `Live: ${formatInteger(this.snapshot.totals.live)} | Kommande: ${formatInteger(this.snapshot.totals.upcoming)}`
+      `Live: ${formatInteger(this.snapshot.totals.live)}`
     );
   }
 
@@ -550,28 +529,9 @@ class AtpCli {
     ]);
   }
 
-  printUpcoming() {
-    console.log("");
-    console.log("Kommande");
-
-    if (this.snapshot.sections.upcoming.items.length === 0) {
-      console.log("Inga kommande matcher.");
-      return;
-    }
-
-    renderTable(createTableRows(this.snapshot.sections.upcoming.items.slice(0, 10)), [
-      { key: "start", label: "Start" },
-      { key: "turnering", label: "Turnering" },
-      { key: "match", label: "Match" },
-      { key: "status", label: "Status" },
-      { key: "score", label: "Score" }
-    ]);
-  }
-
   run() {
     this.printHeader();
     this.printLive();
-    this.printUpcoming();
   }
 }
 
