@@ -126,7 +126,7 @@ Publicerade topics:
 - `atp/live`
 - `atp/upcoming`
 
-`atp` innehåller bara en kort textsträng för displayer. När matcher är live är texten spelarnamn och poäng för de viktigaste live-matcherna.
+`atp` innehåller bara en kort textsträng för displayer. När matcher är live är texten efternamn och poäng för de viktigaste live-matcherna.
 
 `atp/summary` innehåller en sammanfattning:
 
@@ -171,6 +171,7 @@ Publicerade topics:
       "tournament": "Rom",
       "state": "live",
       "label": "Jannik Sinner - Daniil Medvedev",
+      "shortLabel": "Sinner - Medvedev",
       "score": "6-2 5-7 4-2 [40-AD]",
       "serve": "opponent",
       "playerA": {

@@ -262,12 +262,26 @@ function createImportance(event) {
   };
 }
 
+function getLastName(name) {
+  const parts = String(name ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return parts.at(-1) || "Okänd";
+}
+
+function createShortLabel(playerA, playerB) {
+  return `${getLastName(playerA?.name)} - ${getLastName(playerB?.name)}`;
+}
+
 function normalizeMatchItem(item) {
   return {
     start: item.start ?? null,
     tournament: item.tournament ?? null,
     state: item.state ?? null,
     label: `${item.playerA?.name ?? "Okänd"} - ${item.playerB?.name ?? "Okänd"}`,
+    shortLabel: createShortLabel(item.playerA, item.playerB),
     score: item.score ?? null,
     serve: item.serve ?? null,
     playerA: {
@@ -355,14 +369,14 @@ function createHeadline({ liveMatches, upcomingMatches }) {
   if (liveMatches.length > 0) {
     return sanitizeHeadlineText(
       liveMatches
-        .map(match => `${match.label} ${match.score ?? ""}`.trim())
+        .map(match => `${match.shortLabel} ${match.score ?? ""}`.trim())
         .join(" • ")
     ).replace(/\s+/g, " ").trim();
   }
 
   if (firstUpcoming) {
     return sanitizeHeadlineText(
-      `${firstUpcoming.label} ${formatTime(firstUpcoming.start) ?? ""} • ${formatInteger(upcomingMatches.length)} kommande`
+      `${firstUpcoming.shortLabel} ${formatTime(firstUpcoming.start) ?? ""} • ${formatInteger(upcomingMatches.length)} kommande`
     ).replace(/\s+/g, " ").trim();
   }
 
