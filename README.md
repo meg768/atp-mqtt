@@ -118,7 +118,7 @@ Publicerade topics:
 ```json
 {
   "timestamp": "2026-05-15T20:00:00.000Z",
-  "headline": "ATP LIVE Rom: Sinner-Medvedev 6-2 5-7 4-2 [40-AD] • 1 live • 5 kommande",
+  "headline": "Tennis Rom: Sinner-Medvedev 6-2 5-7 4-2 [40-AD] • 1 live • 5 kommande",
   "totals": {
     "matches": 6,
     "live": 1,

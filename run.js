@@ -272,17 +272,17 @@ function createHeadline({ liveMatches, upcomingMatches }) {
 
   if (firstLive) {
     return sanitizeHeadlineText(
-      `ATP LIVE ${firstLive.tournament}: ${firstLive.label} ${firstLive.score ?? ""} • ${formatInteger(liveMatches.length)} live • ${formatInteger(upcomingMatches.length)} kommande`
+      `Tennis ${firstLive.tournament}: ${firstLive.label} ${firstLive.score ?? ""} • ${formatInteger(liveMatches.length)} live • ${formatInteger(upcomingMatches.length)} kommande`
     ).replace(/\s+/g, " ").trim();
   }
 
   if (firstUpcoming) {
     return sanitizeHeadlineText(
-      `ATP nästa ${firstUpcoming.tournament}: ${firstUpcoming.label} ${formatTime(firstUpcoming.start) ?? ""} • ${formatInteger(upcomingMatches.length)} kommande`
+      `Tennis ${firstUpcoming.tournament}: ${firstUpcoming.label} ${formatTime(firstUpcoming.start) ?? ""} • ${formatInteger(upcomingMatches.length)} kommande`
     ).replace(/\s+/g, " ").trim();
   }
 
-  return "ATP: inga live- eller kommande matcher";
+  return "Tennis: inga live- eller kommande matcher";
 }
 
 function createSummarySnapshot(matches) {
