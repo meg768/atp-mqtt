@@ -32,7 +32,7 @@ Gränsen kan ändras med `ATP_MQTT_MAX_LIVE`.
 Kontinuerlig publicering pollar snabbare när matcher är live:
 
 - standard live: var 30:e sekund
-- standard utan live-match: var 15:e minut
+- standard utan live-match: var 30:e minut
 - ändra med `ATP_MQTT_LIVE_POLL_SECONDS` och `ATP_MQTT_IDLE_POLL_SECONDS`
 - MQTT publiceras bara när score-signaturen för de utvalda live-matcherna ändras, plus första publiceringen efter processstart
 

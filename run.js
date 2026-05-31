@@ -13,7 +13,7 @@ const TIMEZONE = "Europe/Stockholm";
 const SOURCE_DESCRIPTION = "Kambi/Svenska Spel ATP Oddset";
 const DEFAULT_MAX_LIVE_MATCHES = 3;
 const DEFAULT_LIVE_POLL_SECONDS = 30;
-const DEFAULT_IDLE_POLL_SECONDS = 900;
+const DEFAULT_IDLE_POLL_SECONDS = 1800;
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
 const EXCLUDED_COMPETITION_TERMS = new Set([
   "wta",
