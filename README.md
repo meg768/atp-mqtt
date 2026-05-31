@@ -1,6 +1,6 @@
 # atp-mqtt
 
-Det här repot hämtar ATP-matchdata direkt från den publika Kambi/Svenska Spel-feeden och kan publicera en kort headline samt JSON-data till MQTT.
+Det här repot hämtar ATP-/Grand Slam-matchdata direkt från den publika Kambi/Svenska Spel-feeden och kan publicera en kort headline samt JSON-data till MQTT.
 
 Första versionen fokuserar på sådant som passar bra på en display:
 
@@ -14,11 +14,13 @@ Projektet är fristående och beror inte på `tennis.egelberg.se` eller något a
 
 ## Datakälla
 
-Standardkälla är den publika ATP-feeden via Kambi/Svenska Spel:
+Standardkälla är den publika tennis-feeden via Kambi/Svenska Spel:
 
-- `GET https://eu1.offering-api.kambicdn.com/offering/v2018/svenskaspel/listView/tennis/atp/all/all/matches.json`
+- `GET https://eu1.offering-api.kambicdn.com/offering/v2018/svenskaspel/listView/tennis/all/all/all/matches.json`
 
 Projektet lägger själv på query-parametrar som `channel_id`, `client_id`, `lang`, `market`, `useCombined` och `useCombinedLive`, och normaliserar sedan svaret till ett enklare internt format.
+
+Eftersom Grand Slam-turneringar hos Kambi inte alltid ligger under `/tennis/atp` hämtar projektet den bredare tennis-feeden och filtrerar sedan till ATP- och Grand Slam-events. Uppenbara WTA-, Challenger-, UTR-, dam- och dubbelmatcher filtreras bort.
 
 Den uppströmsfeeden innehåller bland annat:
 

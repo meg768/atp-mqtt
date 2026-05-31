@@ -8,9 +8,19 @@ const mqtt = require("mqtt");
 
 const DEFAULT_MQTT_TOPIC_PREFIX = "atp";
 const DEFAULT_ODDSET_API_URL =
-  "https://eu1.offering-api.kambicdn.com/offering/v2018/svenskaspel/listView/tennis/atp/all/all/matches.json";
+  "https://eu1.offering-api.kambicdn.com/offering/v2018/svenskaspel/listView/tennis/all/all/all/matches.json";
 const TIMEZONE = "Europe/Stockholm";
 const SOURCE_DESCRIPTION = "Kambi/Svenska Spel ATP Oddset";
+const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
+const EXCLUDED_COMPETITION_TERMS = new Set([
+  "wta",
+  "challenger",
+  "challenger_qual_",
+  "utr_pro_tennis_series",
+  "utr_pro_tennis_series_women"
+]);
+const EXCLUDED_EVENT_TEXT_PATTERN =
+  /(^|[\s-])(damer|damsingel|damdubbel|women|womens|ladies|dubbel|doubles)([\s-]|$)/i;
 
 function normalizeSpaces(value) {
   return String(value).replace(/\u00a0/g, " ");
@@ -156,6 +166,45 @@ function buildOddsetUrl(url) {
   return result.toString();
 }
 
+function getEventPathTerms(event) {
+  return Array.isArray(event?.path)
+    ? event.path
+        .map(item => String(item?.termKey ?? "").trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+}
+
+function getEventSearchText(event) {
+  const pathText = Array.isArray(event?.path)
+    ? event.path
+        .flatMap(item => [item?.name, item?.englishName, item?.termKey])
+        .filter(Boolean)
+        .join(" ")
+    : "";
+
+  return [event?.name, event?.group, pathText].filter(Boolean).join(" ");
+}
+
+function isRelevantAtpEvent(item) {
+  const event = item?.event;
+  const terms = getEventPathTerms(event);
+  const searchText = getEventSearchText(event);
+
+  if (!["STARTED", "NOT_STARTED"].includes(event?.state)) {
+    return false;
+  }
+
+  if (EXCLUDED_EVENT_TEXT_PATTERN.test(searchText)) {
+    return false;
+  }
+
+  if (terms.some(term => EXCLUDED_COMPETITION_TERMS.has(term))) {
+    return false;
+  }
+
+  return terms.some(term => INCLUDED_COMPETITION_TERMS.has(term));
+}
+
 function normalizeMatchItem(item) {
   return {
     start: item.start ?? null,
@@ -182,7 +231,7 @@ async function fetchMatches() {
   const data = await requestJson(buildOddsetUrl(sourceUrl));
   const events = Array.isArray(data?.events) ? data.events : [];
 
-  return events.map(item => {
+  return events.filter(isRelevantAtpEvent).map(item => {
     const matchOdds = Array.isArray(item.betOffers)
       ? item.betOffers.find(offer => offer?.criterion?.label === "Matchodds")
       : null;
