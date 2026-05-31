@@ -11,6 +11,8 @@ const DEFAULT_ODDSET_API_URL =
   "https://eu1.offering-api.kambicdn.com/offering/v2018/svenskaspel/listView/tennis/all/all/all/matches.json";
 const TIMEZONE = "Europe/Stockholm";
 const SOURCE_DESCRIPTION = "Kambi/Svenska Spel ATP Oddset";
+const DEFAULT_MAX_LIVE_MATCHES = 3;
+const DEFAULT_MAX_UPCOMING_MATCHES = 3;
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
 const EXCLUDED_COMPETITION_TERMS = new Set([
   "wta",
@@ -69,12 +71,32 @@ function sumBy(items, selector) {
   return items.reduce((total, item) => total + selector(item), 0);
 }
 
+function parsePositiveIntegerEnv(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function sortByStart(items) {
-  return [...items].sort((a, b) => {
-    const aTime = a.start ? new Date(a.start).getTime() : Number.POSITIVE_INFINITY;
-    const bTime = b.start ? new Date(b.start).getTime() : Number.POSITIVE_INFINITY;
-    return aTime - bTime;
-  });
+  return [...items].sort(compareByStart);
+}
+
+function compareByStart(a, b) {
+  const aTime = a.start ? new Date(a.start).getTime() : Number.POSITIVE_INFINITY;
+  const bTime = b.start ? new Date(b.start).getTime() : Number.POSITIVE_INFINITY;
+  return aTime - bTime;
+}
+
+function compareByImportance(a, b) {
+  const priorityDifference =
+    (b.importance?.score ?? 0) - (a.importance?.score ?? 0);
+
+  if (priorityDifference !== 0) {
+    return priorityDifference;
+  }
+
+  const aTime = a.start ? new Date(a.start).getTime() : Number.POSITIVE_INFINITY;
+  const bTime = b.start ? new Date(b.start).getTime() : Number.POSITIVE_INFINITY;
+  return aTime - bTime;
 }
 
 async function requestJson(url) {
@@ -205,6 +227,39 @@ function isRelevantAtpEvent(item) {
   return terms.some(term => INCLUDED_COMPETITION_TERMS.has(term));
 }
 
+function createImportance(event) {
+  const terms = getEventPathTerms(event);
+  const searchText = getEventSearchText(event).toLowerCase();
+  let score = 0;
+  const reasons = [];
+
+  if (terms.includes("grand_slam")) {
+    score += 100;
+    reasons.push("grand_slam");
+  }
+
+  if (terms.includes("atp")) {
+    score += 60;
+    reasons.push("atp");
+  }
+
+  if (/\b(masters|1000)\b/i.test(searchText)) {
+    score += 30;
+    reasons.push("masters");
+  }
+
+  if (/\b(final|semi|sf|qf|quarter)\b/i.test(searchText)) {
+    score += 20;
+    reasons.push("late_round");
+  }
+
+  return {
+    score,
+    terms,
+    reasons
+  };
+}
+
 function normalizeMatchItem(item) {
   return {
     start: item.start ?? null,
@@ -222,7 +277,8 @@ function normalizeMatchItem(item) {
       id: item.playerB?.id ?? null,
       name: item.playerB?.name ?? null,
       odds: item.playerB?.odds ?? null
-    }
+    },
+    importance: item.importance ?? { score: 0, terms: [], reasons: [] }
   };
 }
 
@@ -241,6 +297,7 @@ async function fetchMatches() {
       tournament: item.event?.group ?? null,
       state: item.event?.state === "STARTED" ? "live" : "upcoming",
       score: buildScore(item),
+      importance: createImportance(item.event),
       serve: item.liveData
         ? item.liveData?.statistics?.sets?.homeServe
           ? "player"
@@ -266,6 +323,30 @@ async function fetchMatches() {
   });
 }
 
+function selectImportantMatches(matches) {
+  const maxLive = parsePositiveIntegerEnv(
+    process.env.ATP_MQTT_MAX_LIVE,
+    DEFAULT_MAX_LIVE_MATCHES
+  );
+  const maxUpcoming = parsePositiveIntegerEnv(
+    process.env.ATP_MQTT_MAX_UPCOMING,
+    DEFAULT_MAX_UPCOMING_MATCHES
+  );
+
+  return {
+    liveMatches: matches
+      .filter(match => match.state === "live")
+      .sort(compareByImportance)
+      .slice(0, maxLive)
+      .sort(compareByStart),
+    upcomingMatches: matches
+      .filter(match => match.state === "upcoming")
+      .sort(compareByImportance)
+      .slice(0, maxUpcoming)
+      .sort(compareByStart)
+  };
+}
+
 function createHeadline({ liveMatches, upcomingMatches }) {
   const firstLive = liveMatches[0] ?? null;
   const firstUpcoming = upcomingMatches[0] ?? null;
@@ -286,18 +367,22 @@ function createHeadline({ liveMatches, upcomingMatches }) {
 }
 
 function createSummarySnapshot(matches) {
-  const liveMatches = sortByStart(matches.filter(match => match.state === "live"));
-  const upcomingMatches = sortByStart(matches.filter(match => match.state === "upcoming"));
+  const { liveMatches, upcomingMatches } = selectImportantMatches(matches);
   const headline = createHeadline({ liveMatches, upcomingMatches });
   const nextMatch = liveMatches[0] ?? upcomingMatches[0] ?? null;
+  const totalLive = matches.filter(match => match.state === "live").length;
+  const totalUpcoming = matches.filter(match => match.state === "upcoming").length;
 
   return {
     timestamp: new Date().toISOString(),
     headline,
     totals: {
-      matches: matches.length,
+      matches: liveMatches.length + upcomingMatches.length,
       live: liveMatches.length,
-      upcoming: upcomingMatches.length
+      upcoming: upcomingMatches.length,
+      availableMatches: matches.length,
+      availableLive: totalLive,
+      availableUpcoming: totalUpcoming
     },
     nextMatch:
       nextMatch == null
@@ -311,7 +396,17 @@ function createSummarySnapshot(matches) {
     metadata: {
       source: SOURCE_DESCRIPTION,
       timezone: TIMEZONE,
-      upstream: "eu1.offering-api.kambicdn.com"
+      upstream: "eu1.offering-api.kambicdn.com",
+      selection: {
+        maxLive: parsePositiveIntegerEnv(
+          process.env.ATP_MQTT_MAX_LIVE,
+          DEFAULT_MAX_LIVE_MATCHES
+        ),
+        maxUpcoming: parsePositiveIntegerEnv(
+          process.env.ATP_MQTT_MAX_UPCOMING,
+          DEFAULT_MAX_UPCOMING_MATCHES
+        )
+      }
     },
     sections: {
       live: { items: liveMatches },

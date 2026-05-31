@@ -22,6 +22,15 @@ Projektet lägger själv på query-parametrar som `channel_id`, `client_id`, `la
 
 Eftersom Grand Slam-turneringar hos Kambi inte alltid ligger under `/tennis/atp` hämtar projektet den bredare tennis-feeden och filtrerar sedan till ATP- och Grand Slam-events. Uppenbara WTA-, Challenger-, UTR-, dam- och dubbelmatcher filtreras bort.
 
+För MQTT-output väljer projektet bara de viktigaste matcherna:
+
+- live-matcher först
+- Grand Slam före vanlig ATP
+- Masters/1000 och sena rundor får extra prioritet om feeden exponerar sådan text
+- standardgräns: högst 3 live och 3 kommande matcher
+
+Gränserna kan ändras med `ATP_MQTT_MAX_LIVE` och `ATP_MQTT_MAX_UPCOMING`.
+
 Den uppströmsfeeden innehåller bland annat:
 
 - `start`
@@ -120,9 +129,12 @@ Publicerade topics:
   "timestamp": "2026-05-15T20:00:00.000Z",
   "headline": "Tennis Rom: Sinner-Medvedev 6-2 5-7 4-2 [40-AD] • 1 live • 5 kommande",
   "totals": {
-    "matches": 6,
+    "matches": 4,
     "live": 1,
-    "upcoming": 5
+    "upcoming": 3,
+    "availableMatches": 6,
+    "availableLive": 1,
+    "availableUpcoming": 5
   },
   "nextMatch": {
     "start": "2026-05-15T17:23:00Z",
@@ -133,7 +145,11 @@ Publicerade topics:
   "metadata": {
     "source": "Kambi/Svenska Spel ATP Oddset",
     "timezone": "Europe/Stockholm",
-    "upstream": "eu1.offering-api.kambicdn.com"
+    "upstream": "eu1.offering-api.kambicdn.com",
+    "selection": {
+      "maxLive": 3,
+      "maxUpcoming": 3
+    }
   }
 }
 ```
