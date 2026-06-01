@@ -123,16 +123,12 @@ Publicerade topics:
 
 - `atp`
 - `atp/text`
-- `atp/summary`
-- `atp/live`
-- `atp/upcoming`
 - `atp/json`
 
 `atp` innehåller bara en kort textsträng för displayer. När matcher är live är texten efternamn och poäng för de viktigaste live-matcherna.
 `atp/text` innehåller samma korta textsträng som `atp`, som en konsekvent text-topic.
 `atp/json` innehåller hela snapshotten med samma struktur som appen redan använder internt: `summary`-fälten plus `sections.live.items` och `sections.upcoming.items`.
-
-`atp/summary` innehåller en sammanfattning:
+Exempel:
 
 ```json
 {
@@ -159,35 +155,15 @@ Publicerade topics:
     "selection": {
       "maxLive": 3
     }
-  }
-}
-```
-
-`atp/live` och `atp/upcoming` använder samma item-schema.
-
-```json
-{
-  "timestamp": "2026-05-15T20:00:00.000Z",
-  "items": [
-    {
-      "start": "2026-05-15T17:23:00Z",
-      "tournament": "Rom",
-      "state": "live",
-      "label": "Jannik Sinner - Daniil Medvedev",
-      "shortLabel": "Sinner - Medvedev",
-      "score": "6-2 5-7 4-2 [40-AD]",
-      "serve": "opponent",
-      "playerA": {
-        "id": "S0AG",
-        "name": "Jannik Sinner",
-        "odds": 1.06
-      },
-      "playerB": {
-        "id": "MM58",
-        "name": "Daniil Medvedev",
-        "odds": 9
-      }
     }
-  ]
+  },
+  "sections": {
+    "live": {
+      "items": []
+    },
+    "upcoming": {
+      "items": []
+    }
+  }
 }
 ```

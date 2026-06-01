@@ -424,37 +424,10 @@ function createSummarySnapshot(matches) {
   };
 }
 
-function createSummaryPayload(snapshot) {
-  return {
-    timestamp: snapshot.timestamp,
-    headline: snapshot.headline,
-    totals: snapshot.totals,
-    nextMatch: snapshot.nextMatch,
-    metadata: snapshot.metadata
-  };
-}
-
-function createLivePayload(snapshot) {
-  return {
-    timestamp: snapshot.timestamp,
-    items: snapshot.sections.live.items
-  };
-}
-
-function createUpcomingPayload(snapshot) {
-  return {
-    timestamp: snapshot.timestamp,
-    items: snapshot.sections.upcoming.items
-  };
-}
-
 function createMqttMessages(snapshot, topicPrefix) {
   return [
     { topic: topicPrefix, payload: snapshot.headline },
     { topic: `${topicPrefix}/text`, payload: snapshot.headline },
-    { topic: `${topicPrefix}/summary`, payload: createSummaryPayload(snapshot) },
-    { topic: `${topicPrefix}/live`, payload: createLivePayload(snapshot) },
-    { topic: `${topicPrefix}/upcoming`, payload: createUpcomingPayload(snapshot) },
     { topic: `${topicPrefix}/json`, payload: snapshot }
   ];
 }
