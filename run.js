@@ -294,6 +294,12 @@ function createShortLabel(playerA, playerB) {
   return `${getLastName(playerA?.name)} - ${getLastName(playerB?.name)}`;
 }
 
+function formatOdds(value) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : "-";
+}
+
 function normalizeMatchItem(item) {
   return {
     start: item.start ?? null,
@@ -416,6 +422,22 @@ function createUpcomingText(upcomingMatches) {
   ).replace(/\s+/g, " ").trim();
 }
 
+function createOddsText(liveMatches) {
+  if (liveMatches.length === 0) {
+    return "Inga liveodds";
+  }
+
+  return sanitizeHeadlineText(
+    liveMatches
+      .map(match => {
+        const playerA = `${getLastName(match.playerA?.name)} (${formatOdds(match.playerA?.odds)})`;
+        const playerB = `${getLastName(match.playerB?.name)} (${formatOdds(match.playerB?.odds)})`;
+        return `${playerA} - ${playerB}`;
+      })
+      .join(" • ")
+  ).replace(/\s+/g, " ").trim();
+}
+
 function createSummarySnapshot(matches) {
   const { liveMatches, upcomingMatches } = selectImportantMatches(matches);
   const headline = createHeadline({ liveMatches, upcomingMatches });
@@ -468,6 +490,7 @@ function createSummarySnapshot(matches) {
 function createMqttMessages(snapshot, topicPrefix) {
   return [
     { topic: `${topicPrefix}/text/live`, payload: createLiveText(snapshot.sections.live.items) },
+    { topic: `${topicPrefix}/text/odds`, payload: createOddsText(snapshot.sections.live.items) },
     { topic: `${topicPrefix}/text/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) },
     { topic: `${topicPrefix}/json`, payload: snapshot }
   ];
