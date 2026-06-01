@@ -12,6 +12,7 @@ const DEFAULT_ODDSET_API_URL =
 const TIMEZONE = "Europe/Stockholm";
 const SOURCE_DESCRIPTION = "Kambi/Svenska Spel ATP Oddset";
 const DEFAULT_MAX_LIVE_MATCHES = 3;
+const DEFAULT_MAX_UPCOMING_MATCHES = 3;
 const DEFAULT_LIVE_POLL_SECONDS = 30;
 const DEFAULT_IDLE_POLL_SECONDS = 1800;
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
@@ -343,6 +344,10 @@ function selectImportantMatches(matches) {
     process.env.ATP_MQTT_MAX_LIVE,
     DEFAULT_MAX_LIVE_MATCHES
   );
+  const maxUpcoming = parsePositiveIntegerEnv(
+    process.env.ATP_MQTT_MAX_UPCOMING,
+    DEFAULT_MAX_UPCOMING_MATCHES
+  );
 
   return {
     liveMatches: matches
@@ -350,7 +355,11 @@ function selectImportantMatches(matches) {
       .sort(compareByImportance)
       .slice(0, maxLive)
       .sort(compareByStart),
-    upcomingMatches: []
+    upcomingMatches: matches
+      .filter(match => match.state === "upcoming")
+      .sort(compareByImportance)
+      .slice(0, maxUpcoming)
+      .sort(compareByStart)
   };
 }
 
@@ -401,6 +410,10 @@ function createSummarySnapshot(matches) {
         maxLive: parsePositiveIntegerEnv(
           process.env.ATP_MQTT_MAX_LIVE,
           DEFAULT_MAX_LIVE_MATCHES
+        ),
+        maxUpcoming: parsePositiveIntegerEnv(
+          process.env.ATP_MQTT_MAX_UPCOMING,
+          DEFAULT_MAX_UPCOMING_MATCHES
         )
       }
     },
@@ -589,13 +602,15 @@ function getPollingDelayMilliseconds(snapshot) {
 }
 
 function createScoreSignature(snapshot) {
-  if (snapshot.sections.live.items.length === 0) {
-    return `idle:${snapshot.headline}`;
-  }
-
-  return snapshot.sections.live.items
-    .map(match => `${match.shortLabel}=${match.score ?? ""}`)
+  const liveSignature = snapshot.sections.live.items
+    .map(match => `live:${match.shortLabel}=${match.score ?? ""}`)
     .join("|");
+  const upcomingSignature = snapshot.sections.upcoming.items
+    .map(match => `upcoming:${match.start ?? ""}:${match.shortLabel}`)
+    .join("|");
+
+  return [liveSignature, upcomingSignature].filter(Boolean).join("|")
+    || `idle:${snapshot.headline}`;
 }
 
 function sleep(milliseconds) {

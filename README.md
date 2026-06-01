@@ -26,8 +26,9 @@ För MQTT-output väljer projektet bara de viktigaste matcherna:
 - Grand Slam före vanlig ATP
 - Masters/1000 och sena rundor får extra prioritet om feeden exponerar sådan text
 - standardgräns: högst 3 live-matcher
+- standardgräns: högst 3 kommande matcher
 
-Gränsen kan ändras med `ATP_MQTT_MAX_LIVE`.
+Gränserna kan ändras med `ATP_MQTT_MAX_LIVE` och `ATP_MQTT_MAX_UPCOMING`.
 
 Kontinuerlig publicering pollar snabbare när matcher är live:
 
@@ -158,7 +159,7 @@ Publicerade topics:
 }
 ```
 
-`atp/live` använder samma item-schema. `atp/upcoming` publiceras fortfarande som en tom lista för att rensa gamla retained-data hos äldre konsumenter.
+`atp/live` och `atp/upcoming` använder samma item-schema.
 
 ```json
 {
