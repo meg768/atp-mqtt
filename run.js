@@ -430,9 +430,9 @@ function createOddsText(liveMatches) {
   return sanitizeHeadlineText(
     liveMatches
       .map(match => {
-        const playerA = `${getLastName(match.playerA?.name)} (${formatOdds(match.playerA?.odds)})`;
-        const playerB = `${getLastName(match.playerB?.name)} (${formatOdds(match.playerB?.odds)})`;
-        return `${playerA} - ${playerB}`;
+        const playerAOdds = formatOdds(match.playerA?.odds);
+        const playerBOdds = formatOdds(match.playerB?.odds);
+        return `${match.shortLabel} (${playerAOdds}/${playerBOdds})`;
       })
       .join(" • ")
   ).replace(/\s+/g, " ").trim();
