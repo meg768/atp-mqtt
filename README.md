@@ -121,12 +121,12 @@ Projektet laddar `.env` automatiskt via `dotenv`.
 
 Publicerade topics:
 
-- `atp`
-- `atp/text`
+- `atp/text/live`
+- `atp/text/upcoming`
 - `atp/json`
 
-`atp` innehåller bara en kort textsträng för displayer. När matcher är live är texten efternamn och poäng för de viktigaste live-matcherna.
-`atp/text` innehåller samma korta textsträng som `atp`, som en konsekvent text-topic.
+`atp/text/live` innehåller live-matcher som displaytext, till exempel `Sinner - Alcaraz 6-4 2-1 [30-15]`.
+`atp/text/upcoming` innehåller max tre kommande matcher i startordning, till exempel `21:45 Sinner - Alcaraz • 22:33 Tiafoe - Ruud`. Om matchen är nästa lokala dag prefixas den med `I morgon`, till exempel `I morgon 10:00 Sinner - Alcaraz`.
 `atp/json` innehåller hela snapshotten med samma struktur som appen redan använder internt: `summary`-fälten plus `sections.live.items` och `sections.upcoming.items`.
 Exempel:
 

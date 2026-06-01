@@ -46,6 +46,25 @@ function formatTime(value) {
   }).format(new Date(value));
 }
 
+function formatDateKey(value) {
+  if (!value) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date(value));
+}
+
+function getTomorrowDateKey() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return formatDateKey(tomorrow);
+}
+
 function formatTimestamp(timestamp) {
   const value =
     timestamp instanceof Date || typeof timestamp === "number"
@@ -357,9 +376,8 @@ function selectImportantMatches(matches) {
       .sort(compareByStart),
     upcomingMatches: matches
       .filter(match => match.state === "upcoming")
-      .sort(compareByImportance)
-      .slice(0, maxUpcoming)
       .sort(compareByStart)
+      .slice(0, maxUpcoming)
   };
 }
 
@@ -373,6 +391,29 @@ function createHeadline({ liveMatches }) {
   }
 
   return "Inga live-matcher";
+}
+
+function createLiveText(liveMatches) {
+  return createHeadline({ liveMatches });
+}
+
+function createUpcomingText(upcomingMatches) {
+  if (upcomingMatches.length === 0) {
+    return "Inga kommande matcher";
+  }
+
+  const tomorrowKey = getTomorrowDateKey();
+
+  return sanitizeHeadlineText(
+    upcomingMatches
+      .slice(0, DEFAULT_MAX_UPCOMING_MATCHES)
+      .map(match => {
+        const time = formatTime(match.start) ?? "--:--";
+        const datePrefix = formatDateKey(match.start) === tomorrowKey ? "I morgon " : "";
+        return `${datePrefix}${time} ${match.shortLabel}`;
+      })
+      .join(" • ")
+  ).replace(/\s+/g, " ").trim();
 }
 
 function createSummarySnapshot(matches) {
@@ -426,8 +467,8 @@ function createSummarySnapshot(matches) {
 
 function createMqttMessages(snapshot, topicPrefix) {
   return [
-    { topic: topicPrefix, payload: snapshot.headline },
-    { topic: `${topicPrefix}/text`, payload: snapshot.headline },
+    { topic: `${topicPrefix}/text/live`, payload: createLiveText(snapshot.sections.live.items) },
+    { topic: `${topicPrefix}/text/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) },
     { topic: `${topicPrefix}/json`, payload: snapshot }
   ];
 }
