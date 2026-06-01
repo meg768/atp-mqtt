@@ -122,11 +122,15 @@ Projektet laddar `.env` automatiskt via `dotenv`.
 Publicerade topics:
 
 - `atp`
+- `atp/text`
 - `atp/summary`
 - `atp/live`
 - `atp/upcoming`
+- `atp/json`
 
 `atp` innehåller bara en kort textsträng för displayer. När matcher är live är texten efternamn och poäng för de viktigaste live-matcherna.
+`atp/text` innehåller samma korta textsträng som `atp`, som en konsekvent text-topic.
+`atp/json` innehåller hela snapshotten med samma struktur som appen redan använder internt: `summary`-fälten plus `sections.live.items` och `sections.upcoming.items`.
 
 `atp/summary` innehåller en sammanfattning:
 

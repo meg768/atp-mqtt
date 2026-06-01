@@ -451,9 +451,11 @@ function createUpcomingPayload(snapshot) {
 function createMqttMessages(snapshot, topicPrefix) {
   return [
     { topic: topicPrefix, payload: snapshot.headline },
+    { topic: `${topicPrefix}/text`, payload: snapshot.headline },
     { topic: `${topicPrefix}/summary`, payload: createSummaryPayload(snapshot) },
     { topic: `${topicPrefix}/live`, payload: createLivePayload(snapshot) },
-    { topic: `${topicPrefix}/upcoming`, payload: createUpcomingPayload(snapshot) }
+    { topic: `${topicPrefix}/upcoming`, payload: createUpcomingPayload(snapshot) },
+    { topic: `${topicPrefix}/json`, payload: snapshot }
   ];
 }
 
