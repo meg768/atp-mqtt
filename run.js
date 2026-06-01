@@ -633,7 +633,11 @@ function sleep(milliseconds) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-async function publishSnapshotToMqtt(snapshot, config) {
+function serializeMqttPayload(payload) {
+  return typeof payload === "string" ? payload : JSON.stringify(payload);
+}
+
+async function publishSnapshotToMqtt(snapshot, config, state = null) {
   if (!config.url) {
     throw new Error("MQTT_URL saknas. Ange den i .env eller miljön.");
   }
@@ -650,12 +654,15 @@ async function publishSnapshotToMqtt(snapshot, config) {
   });
 
   const messages = createMqttMessages(snapshot, config.topicPrefix);
+  const messagesToPublish = state?.lastPayloadByTopic
+    ? messages.filter(message => {
+        const payload = serializeMqttPayload(message.payload);
+        return state.lastPayloadByTopic.get(message.topic) !== payload;
+      })
+    : messages;
 
-  for (const message of messages) {
-    const payload =
-      typeof message.payload === "string"
-        ? message.payload
-        : JSON.stringify(message.payload);
+  for (const message of messagesToPublish) {
+    const payload = serializeMqttPayload(message.payload);
 
     await new Promise((resolve, reject) => {
       client.publish(message.topic, payload, { retain: config.retain }, error => {
@@ -667,13 +674,15 @@ async function publishSnapshotToMqtt(snapshot, config) {
         resolve();
       });
     });
+
+    state?.lastPayloadByTopic?.set(message.topic, payload);
   }
 
   await new Promise(resolve => {
     client.end(false, resolve);
   });
 
-  return messages.length;
+  return messagesToPublish.length;
 }
 
 async function executeOnce(argv) {
@@ -701,8 +710,13 @@ async function publishSnapshotIfChanged(snapshot, mqttConfig, state) {
     return 0;
   }
 
-  const publishedCount = await publishSnapshotToMqtt(snapshot, mqttConfig);
+  const publishedCount = await publishSnapshotToMqtt(snapshot, mqttConfig, state);
   state.lastScoreSignature = scoreSignature;
+  if (publishedCount === 0) {
+    console.log("Inga MQTT-topics ändrades; hoppar över publicering.");
+    return 0;
+  }
+
   console.log(
     `Publicerade ${publishedCount} MQTT-meddelanden till ${mqttConfig.topicPrefix} (${snapshot.timestamp}).`
   );
@@ -711,7 +725,10 @@ async function publishSnapshotIfChanged(snapshot, mqttConfig, state) {
 
 async function executeHourly(argv) {
   const mqttConfig = argv.publish ? createMqttConfig() : null;
-  const publishState = { lastScoreSignature: null };
+  const publishState = {
+    lastPayloadByTopic: new Map(),
+    lastScoreSignature: null
+  };
 
   while (true) {
     let snapshot = null;
