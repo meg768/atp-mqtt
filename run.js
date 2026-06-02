@@ -438,6 +438,27 @@ function createOddsText(liveMatches) {
   ).replace(/\s+/g, " ").trim();
 }
 
+function createScoreboardText(liveMatches) {
+  if (liveMatches.length === 0) {
+    return "Inga live-matcher";
+  }
+
+  return sanitizeHeadlineText(
+    liveMatches
+      .map(match => {
+        const score = match.score ? ` ${match.score}` : "";
+        const playerAOdds = formatOdds(match.playerA?.odds);
+        const playerBOdds = formatOdds(match.playerB?.odds);
+        const odds = playerAOdds === "-" && playerBOdds === "-"
+          ? ""
+          : ` (${playerAOdds}/${playerBOdds})`;
+
+        return `${match.shortLabel}${score}${odds}`;
+      })
+      .join(" • ")
+  ).replace(/\s+/g, " ").trim();
+}
+
 function createSummarySnapshot(matches) {
   const { liveMatches, upcomingMatches } = selectImportantMatches(matches);
   const headline = createHeadline({ liveMatches, upcomingMatches });
@@ -491,6 +512,7 @@ function createMqttMessages(snapshot, topicPrefix) {
   return [
     { topic: `${topicPrefix}/text/live`, payload: createLiveText(snapshot.sections.live.items) },
     { topic: `${topicPrefix}/text/odds`, payload: createOddsText(snapshot.sections.live.items) },
+    { topic: `${topicPrefix}/text/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items) },
     { topic: `${topicPrefix}/text/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) },
     { topic: `${topicPrefix}/json`, payload: snapshot }
   ];
