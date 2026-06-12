@@ -510,11 +510,11 @@ function createSummarySnapshot(matches) {
 
 function createMqttMessages(snapshot, topicPrefix) {
   return [
-    { topic: `${topicPrefix}/text/live`, payload: createLiveText(snapshot.sections.live.items) },
-    { topic: `${topicPrefix}/text/odds`, payload: createOddsText(snapshot.sections.live.items) },
-    { topic: `${topicPrefix}/text/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items) },
-    { topic: `${topicPrefix}/text/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) },
-    { topic: `${topicPrefix}/json`, payload: snapshot }
+    { topic: topicPrefix, payload: snapshot },
+    { topic: `${topicPrefix}/live`, payload: createLiveText(snapshot.sections.live.items) },
+    { topic: `${topicPrefix}/odds`, payload: createOddsText(snapshot.sections.live.items) },
+    { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items) },
+    { topic: `${topicPrefix}/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) }
   ];
 }
 
@@ -809,7 +809,7 @@ async function main() {
     .option("publish", {
       type: "boolean",
       default: false,
-      description: "Publicera huvudtopic och JSON-data till MQTT"
+      description: "Publicera snapshot och texttopics till MQTT"
     })
     .option("hourly", {
       type: "boolean",
