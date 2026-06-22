@@ -19,7 +19,7 @@ Standardkälla är den publika tennis-feeden via Kambi/Svenska Spel:
 
 Projektet lägger själv på query-parametrar som `channel_id`, `client_id`, `lang`, `market`, `useCombined` och `useCombinedLive`, och normaliserar sedan svaret till ett enklare internt format.
 
-Eftersom Grand Slam-turneringar hos Kambi inte alltid ligger under `/tennis/atp` hämtar projektet den bredare tennis-feeden och filtrerar sedan till ATP- och Grand Slam-events. Uppenbara WTA-, Challenger-, UTR-, dam- och dubbelmatcher filtreras bort.
+Eftersom Grand Slam-turneringar hos Kambi inte alltid ligger under `/tennis/atp` hämtar projektet den bredare tennis-feeden och filtrerar sedan till ATP- och Grand Slam-events. Uppenbara WTA-, Challenger-, UTR-, kval-, dam- och dubbelmatcher filtreras bort.
 
 För MQTT-output väljer projektet bara de viktigaste matcherna:
 

@@ -24,7 +24,7 @@ const EXCLUDED_COMPETITION_TERMS = new Set([
   "utr_pro_tennis_series_women"
 ]);
 const EXCLUDED_EVENT_TEXT_PATTERN =
-  /(^|[\s-])(damer|damsingel|damdubbel|women|womens|ladies|dubbel|doubles)([\s-]|$)/i;
+  /(^|[\s-])(damer|damsingel|damdubbel|women|womens|ladies|dubbel|doubles|kval|qual|qualification|qualifier)([\s-]|$)/i;
 
 function normalizeSpaces(value) {
   return String(value).replace(/\u00a0/g, " ");
@@ -242,6 +242,10 @@ function isRelevantAtpEvent(item) {
   }
 
   if (terms.some(term => EXCLUDED_COMPETITION_TERMS.has(term))) {
+    return false;
+  }
+
+  if (terms.some(term => term.includes("qual") || term.includes("kval"))) {
     return false;
   }
 
