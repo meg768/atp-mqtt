@@ -453,13 +453,32 @@ function selectScoreboardMatch(liveMatches, state = null) {
   }
 
   const previousScores = state.lastScoreByMatchKey || new Map();
-  const changedMatch = liveMatches.find(match => {
+  const changedMatches = liveMatches.filter(match => {
     return previousScores.get(getMatchKey(match)) !== (match.score ?? "");
   });
 
-  if (changedMatch) {
-    state.scoreboardMatchKey = getMatchKey(changedMatch);
-    return changedMatch;
+  if (changedMatches.length > 0) {
+    const currentKey = state.scoreboardMatchKey;
+    const currentIndex = liveMatches.findIndex(match => getMatchKey(match) === currentKey);
+    let selectedMatch = null;
+
+    if (currentIndex >= 0 && changedMatches.length > 1) {
+      for (let offset = 1; offset <= liveMatches.length; offset += 1) {
+        const candidate = liveMatches[(currentIndex + offset) % liveMatches.length];
+
+        if (changedMatches.includes(candidate)) {
+          selectedMatch = candidate;
+          break;
+        }
+      }
+    }
+
+    selectedMatch = selectedMatch ??
+      changedMatches.find(match => getMatchKey(match) !== currentKey) ??
+      changedMatches[0];
+
+    state.scoreboardMatchKey = getMatchKey(selectedMatch);
+    return selectedMatch;
   }
 
   const existingFocusedMatch = liveMatches.find(match => {
