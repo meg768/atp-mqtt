@@ -494,6 +494,7 @@ function createSummarySnapshot(matches) {
 
 function createMqttMessages(snapshot, topicPrefix) {
   return [
+    { topic: topicPrefix, payload: snapshot },
     { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items) },
     { topic: `${topicPrefix}/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) }
   ];
