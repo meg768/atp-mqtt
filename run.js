@@ -306,6 +306,7 @@ function formatOdds(value) {
 
 function normalizeMatchItem(item) {
   return {
+    id: item.id ?? null,
     start: item.start ?? null,
     tournament: item.tournament ?? null,
     state: item.state ?? null,
@@ -338,6 +339,7 @@ async function fetchMatches() {
       : null;
 
     return normalizeMatchItem({
+      id: item.event?.id ? String(item.event.id) : null,
       start: item.event?.start ?? null,
       tournament: item.event?.group ?? null,
       state: item.event?.state === "STARTED" ? "live" : "upcoming",
@@ -422,25 +424,74 @@ function createUpcomingText(upcomingMatches) {
   ).replace(/\s+/g, " ").trim();
 }
 
-function createScoreboardText(liveMatches) {
+function formatScoreboardMatch(match) {
+  return sanitizeHeadlineText(
+    (() => {
+      const score = match.score ? ` ${match.score}` : "";
+      const playerAOdds = formatOdds(match.playerA?.odds);
+      const playerBOdds = formatOdds(match.playerB?.odds);
+      const odds = playerAOdds === "-" && playerBOdds === "-"
+        ? ""
+        : ` (${playerAOdds}/${playerBOdds})`;
+
+      return `${match.shortLabel}${score}${odds}`;
+    })()
+  ).replace(/\s+/g, " ").trim();
+}
+
+function getMatchKey(match) {
+  return match.id || `${match.start ?? ""}:${match.shortLabel}`;
+}
+
+function selectScoreboardMatch(liveMatches, state = null) {
   if (liveMatches.length === 0) {
+    return null;
+  }
+
+  if (!state) {
+    return liveMatches[0];
+  }
+
+  const previousScores = state.lastScoreByMatchKey || new Map();
+  const changedMatch = liveMatches.find(match => {
+    return previousScores.get(getMatchKey(match)) !== (match.score ?? "");
+  });
+
+  if (changedMatch) {
+    state.scoreboardMatchKey = getMatchKey(changedMatch);
+    return changedMatch;
+  }
+
+  const existingFocusedMatch = liveMatches.find(match => {
+    return getMatchKey(match) === state.scoreboardMatchKey;
+  });
+
+  if (existingFocusedMatch) {
+    return existingFocusedMatch;
+  }
+
+  state.scoreboardMatchKey = getMatchKey(liveMatches[0]);
+  return liveMatches[0];
+}
+
+function rememberLiveScores(liveMatches, state = null) {
+  if (!state) {
+    return;
+  }
+
+  state.lastScoreByMatchKey = new Map(
+    liveMatches.map(match => [getMatchKey(match), match.score ?? ""])
+  );
+}
+
+function createScoreboardText(liveMatches, state = null) {
+  const match = selectScoreboardMatch(liveMatches, state);
+
+  if (!match) {
     return "Inga live-matcher";
   }
 
-  return sanitizeHeadlineText(
-    liveMatches
-      .map(match => {
-        const score = match.score ? ` ${match.score}` : "";
-        const playerAOdds = formatOdds(match.playerA?.odds);
-        const playerBOdds = formatOdds(match.playerB?.odds);
-        const odds = playerAOdds === "-" && playerBOdds === "-"
-          ? ""
-          : ` (${playerAOdds}/${playerBOdds})`;
-
-        return `${match.shortLabel}${score}${odds}`;
-      })
-      .join(" • ")
-  ).replace(/\s+/g, " ").trim();
+  return formatScoreboardMatch(match);
 }
 
 function createSummarySnapshot(matches) {
@@ -492,10 +543,10 @@ function createSummarySnapshot(matches) {
   };
 }
 
-function createMqttMessages(snapshot, topicPrefix) {
+function createMqttMessages(snapshot, topicPrefix, state = null) {
   return [
     { topic: topicPrefix, payload: snapshot },
-    { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items) },
+    { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items, state) },
     { topic: `${topicPrefix}/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) }
   ];
 }
@@ -680,7 +731,7 @@ async function publishSnapshotToMqtt(snapshot, config, state = null) {
     client.once("error", reject);
   });
 
-  const messages = createMqttMessages(snapshot, config.topicPrefix);
+  const messages = createMqttMessages(snapshot, config.topicPrefix, state);
   const messagesToPublish = state?.lastPayloadByTopic
     ? messages.filter(message => {
         const payload = serializeMqttPayload(message.payload);
@@ -704,6 +755,8 @@ async function publishSnapshotToMqtt(snapshot, config, state = null) {
 
     state?.lastPayloadByTopic?.set(message.topic, payload);
   }
+
+  rememberLiveScores(snapshot.sections.live.items, state);
 
   await new Promise(resolve => {
     client.end(false, resolve);
@@ -754,7 +807,9 @@ async function executeHourly(argv) {
   const mqttConfig = argv.publish ? createMqttConfig() : null;
   const publishState = {
     lastPayloadByTopic: new Map(),
-    lastScoreSignature: null
+    lastScoreSignature: null,
+    lastScoreByMatchKey: new Map(),
+    scoreboardMatchKey: null
   };
 
   while (true) {
