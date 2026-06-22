@@ -301,10 +301,10 @@ function createShortLabel(playerA, playerB) {
 function createScoreboardLabel(match) {
   const playerALastName = getLastName(match.playerA?.name);
   const playerBLastName = getLastName(match.playerB?.name);
-  const playerASuffix = match.serve === "player" ? "(•)" : "";
-  const playerBSuffix = match.serve === "opponent" ? "(•)" : "";
+  const playerAPrefix = match.serve === "player" ? "•" : "";
+  const playerBPrefix = match.serve === "opponent" ? "•" : "";
 
-  return `${playerALastName}${playerASuffix} - ${playerBLastName}${playerBSuffix}`;
+  return `${playerAPrefix}${playerALastName} vs ${playerBPrefix}${playerBLastName}`;
 }
 
 function formatOdds(value) {
