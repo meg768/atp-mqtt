@@ -403,10 +403,6 @@ function createHeadline({ liveMatches }) {
   return "Inga live-matcher";
 }
 
-function createLiveText(liveMatches) {
-  return createHeadline({ liveMatches });
-}
-
 function createUpcomingText(upcomingMatches) {
   if (upcomingMatches.length === 0) {
     return "Inga kommande matcher";
@@ -421,22 +417,6 @@ function createUpcomingText(upcomingMatches) {
         const time = formatTime(match.start) ?? "--:--";
         const datePrefix = formatDateKey(match.start) === tomorrowKey ? "I morgon " : "";
         return `${datePrefix}${time} ${match.shortLabel}`;
-      })
-      .join(" • ")
-  ).replace(/\s+/g, " ").trim();
-}
-
-function createOddsText(liveMatches) {
-  if (liveMatches.length === 0) {
-    return "Inga liveodds";
-  }
-
-  return sanitizeHeadlineText(
-    liveMatches
-      .map(match => {
-        const playerAOdds = formatOdds(match.playerA?.odds);
-        const playerBOdds = formatOdds(match.playerB?.odds);
-        return `${match.shortLabel} (${playerAOdds}/${playerBOdds})`;
       })
       .join(" • ")
   ).replace(/\s+/g, " ").trim();
@@ -514,9 +494,6 @@ function createSummarySnapshot(matches) {
 
 function createMqttMessages(snapshot, topicPrefix) {
   return [
-    { topic: topicPrefix, payload: snapshot },
-    { topic: `${topicPrefix}/live`, payload: createLiveText(snapshot.sections.live.items) },
-    { topic: `${topicPrefix}/odds`, payload: createOddsText(snapshot.sections.live.items) },
     { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items) },
     { topic: `${topicPrefix}/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) }
   ];

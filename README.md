@@ -121,15 +121,9 @@ Projektet laddar `.env` automatiskt via `dotenv`.
 
 Publicerade topics:
 
-- `atp`
-- `atp/live`
-- `atp/odds`
 - `atp/scoreboard`
 - `atp/upcoming`
 
-`atp` innehåller hela snapshotten med samma struktur som appen redan använder internt: `summary`-fälten plus `sections.live.items` och `sections.upcoming.items`.
-`atp/live` innehåller live-matcher som displaytext, till exempel `Sinner - Alcaraz 6-4 2-1 [30-15]`.
-`atp/odds` innehåller liveodds med kort matchnamn, till exempel `Tiafoe - Arnaldi (1.92/1.92)`.
 `atp/scoreboard` kombinerar livescore och odds, till exempel `Tiafoe - Arnaldi 6-7 7-6 [40-0] (1.93/1.87)`.
 `atp/upcoming` innehåller max tre kommande matcher i startordning, till exempel `21:45 Sinner - Alcaraz • 22:33 Tiafoe - Ruud`. Om matchen är nästa lokala dag prefixas den med `I morgon`, till exempel `I morgon 10:00 Sinner - Alcaraz`.
 Exempel:
