@@ -298,6 +298,15 @@ function createShortLabel(playerA, playerB) {
   return `${getLastName(playerA?.name)} - ${getLastName(playerB?.name)}`;
 }
 
+function createScoreboardLabel(match) {
+  const playerALastName = getLastName(match.playerA?.name);
+  const playerBLastName = getLastName(match.playerB?.name);
+  const playerAPrefix = match.serve === "player" ? "• " : "";
+  const playerBPrefix = match.serve === "opponent" ? "• " : "";
+
+  return `${playerAPrefix}${playerALastName} vs ${playerBPrefix}${playerBLastName}`;
+}
+
 function formatOdds(value) {
   return typeof value === "number" && Number.isFinite(value)
     ? String(value)
@@ -434,7 +443,7 @@ function formatScoreboardMatch(match) {
         ? ""
         : ` (${playerAOdds}/${playerBOdds})`;
 
-      return `${match.shortLabel}${score}${odds}`;
+      return `${createScoreboardLabel(match)}${score}${odds}`;
     })()
   ).replace(/\s+/g, " ").trim();
 }
