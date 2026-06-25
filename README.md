@@ -130,7 +130,7 @@ Publicerade topics:
 
 `atp` innehåller hela snapshotten med samma struktur som appen redan använder internt: `summary`-fälten plus `sections.live.items` och `sections.upcoming.items`.
 `atp/scoreboard` visar en live-match i taget med score och odds, till exempel `Tiafoe• vs Arnaldi 6-7 7-6 [40-0] (1.93/1.87)`. Punkten markerar vem som servar. I watch-läge väljs en match där poängen ändrats bland de utvalda live-matcherna; om flera ändrats undviker den att visa samma match igen när en annan ändrad match finns.
-`atp/scoreboard/A`, `atp/scoreboard/B` och `atp/scoreboard/C` visar fasta slotar för de tre utvalda live-matcherna. Om en slot saknar match publiceras `Inga live-matcher` för A eller `Inga fler live-matcher` för B/C så gamla retained-värden rensas.
+`atp/scoreboard/A`, `atp/scoreboard/B` och `atp/scoreboard/C` visar fasta slotar för de tre utvalda live-matcherna. Om en slot saknar match publiceras `Ingen pågående match` så gamla retained-värden rensas.
 `atp/upcoming` innehåller max tre kommande matcher i startordning, till exempel `21:45 Sinner - Alcaraz • 22:33 Tiafoe - Ruud`. Om matchen är nästa lokala dag prefixas den med `I morgon`, till exempel `I morgon 10:00 Sinner - Alcaraz`.
 Exempel:
 

@@ -527,7 +527,7 @@ function createScoreboardSlotText(liveMatches, index) {
   const match = liveMatches[index] ?? null;
 
   if (!match) {
-    return index === 0 ? "Inga live-matcher" : "Inga fler live-matcher";
+    return "Ingen pågående match";
   }
 
   return formatScoreboardMatch(match);
