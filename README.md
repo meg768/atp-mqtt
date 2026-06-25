@@ -94,7 +94,7 @@ node run.js
 Kontinuerlig publicering:
 
 ```bash
-node run.js --publish --hourly
+node run.js --publish --poll
 ```
 
 ## MQTT

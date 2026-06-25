@@ -831,7 +831,7 @@ async function publishSnapshotIfChanged(snapshot, mqttConfig, state) {
   return publishedCount;
 }
 
-async function executeHourly(argv) {
+async function executePoll(argv) {
   const mqttConfig = argv.publish ? createMqttConfig() : null;
   const publishState = {
     lastPayloadByTopic: new Map(),
@@ -870,13 +870,13 @@ async function main() {
 
   const argv = yargs(hideBin(process.argv))
     .scriptName("atp-mqtt")
-    .usage("$0 [--publish] [--hourly]")
+    .usage("$0 [--publish] [--poll]")
     .option("publish", {
       type: "boolean",
       default: false,
       description: "Publicera snapshot och texttopics till MQTT"
     })
-    .option("hourly", {
+    .option("poll", {
       type: "boolean",
       default: false,
       description: "Kör kontinuerligt med snabbare polling när matcher är live"
@@ -886,8 +886,8 @@ async function main() {
     .strict()
     .parse();
 
-  if (argv.hourly) {
-    await executeHourly(argv);
+  if (argv.poll) {
+    await executePoll(argv);
     return;
   }
 

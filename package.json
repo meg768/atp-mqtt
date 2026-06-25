@@ -7,7 +7,7 @@
     "start": "node run.js",
     "fetch": "node run.js",
     "publish": "node run.js --publish",
-    "publish:hourly": "node run.js --publish --hourly"
+    "publish:poll": "node run.js --publish --poll"
   },
   "engines": {
     "node": ">=18"
