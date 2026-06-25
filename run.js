@@ -16,10 +16,22 @@ const DEFAULT_MAX_UPCOMING_MATCHES = 3;
 const DEFAULT_LIVE_POLL_SECONDS = 30;
 const DEFAULT_IDLE_POLL_SECONDS = 1800;
 const SCOREBOARD_SLOT_NAMES = ["A", "B", "C"];
-const DEFAULT_SCOREBOARD_SLOT_RULES = [
-  { slot: "A", pattern: /\b(centre|center)\s+court\b/i },
-  { slot: "B", pattern: /\b(no\.?\s*1|court\s*1|1)\s+court\b|\bcourt\s+(no\.?\s*)?1\b/i },
-  { slot: "C", pattern: /\b(no\.?\s*2|court\s*2|2)\s+court\b|\bcourt\s+(no\.?\s*)?2\b/i }
+const DEFAULT_SCOREBOARD_COURT_RULES = [
+  {
+    slot: "A",
+    priority: 0,
+    pattern: /\b((centre|center)\s+court|philippe[-\s]+chatrier|arthur\s+ashe|rod\s+laver)\b/i
+  },
+  {
+    slot: "B",
+    priority: 1,
+    pattern: /\b(no\.?\s*1\s+court|suzanne[-\s]+lenglen|louis\s+armstrong|margaret\s+court)\b/i
+  },
+  {
+    slot: "C",
+    priority: 2,
+    pattern: /\b(no\.?\s*2\s+court|simonne[-\s]+mathieu|grandstand|john\s+cain|kia\s+arena)\b/i
+  }
 ];
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
 const EXCLUDED_COMPETITION_TERMS = new Set([
@@ -114,6 +126,14 @@ function compareByStart(a, b) {
 }
 
 function compareByImportance(a, b) {
+  const courtPriorityDifference =
+    (a.scoreboardCourtPriority ?? Number.POSITIVE_INFINITY) -
+    (b.scoreboardCourtPriority ?? Number.POSITIVE_INFINITY);
+
+  if (courtPriorityDifference !== 0) {
+    return courtPriorityDifference;
+  }
+
   const priorityDifference =
     (b.importance?.score ?? 0) - (a.importance?.score ?? 0);
 
@@ -257,8 +277,38 @@ function getEventCourtText(event) {
 
 function inferScoreboardSlot(event) {
   const courtText = getEventCourtText(event);
-  const rule = DEFAULT_SCOREBOARD_SLOT_RULES.find(item => item.pattern.test(courtText));
+  const rule = DEFAULT_SCOREBOARD_COURT_RULES.find(item => item.pattern.test(courtText));
   return rule?.slot ?? null;
+}
+
+function getNumberedCourtPriority(courtText) {
+  const patterns = [
+    /\b(?:court|bana)\s*(?:no\.?\s*)?([0-9]{1,2})\b/i,
+    /\bno\.?\s*([0-9]{1,2})\s*(?:court|bana)\b/i,
+    /\b([0-9]{1,2})\s*(?:court|bana)\b/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(courtText);
+    const courtNumber = Number.parseInt(match?.[1] ?? "", 10);
+
+    if (Number.isFinite(courtNumber) && courtNumber > 0) {
+      return 100 + courtNumber;
+    }
+  }
+
+  return null;
+}
+
+function inferScoreboardCourtPriority(event) {
+  const courtText = getEventCourtText(event);
+  const rule = DEFAULT_SCOREBOARD_COURT_RULES.find(item => item.pattern.test(courtText));
+
+  if (rule) {
+    return rule.priority;
+  }
+
+  return getNumberedCourtPriority(courtText);
 }
 
 function isRelevantAtpEvent(item) {
@@ -357,6 +407,7 @@ function normalizeMatchItem(item) {
     score: item.score ?? null,
     serve: item.serve ?? null,
     scoreboardSlot: item.scoreboardSlot ?? null,
+    scoreboardCourtPriority: item.scoreboardCourtPriority ?? null,
     playerA: {
       id: item.playerA?.id ?? null,
       name: item.playerA?.name ?? null,
@@ -389,6 +440,7 @@ async function fetchMatches() {
       score: buildScore(item),
       importance: createImportance(item.event),
       scoreboardSlot: inferScoreboardSlot(item.event),
+      scoreboardCourtPriority: inferScoreboardCourtPriority(item.event),
       serve: item.liveData
         ? item.liveData?.statistics?.sets?.homeServe
           ? "player"
