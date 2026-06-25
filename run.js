@@ -16,6 +16,11 @@ const DEFAULT_MAX_UPCOMING_MATCHES = 3;
 const DEFAULT_LIVE_POLL_SECONDS = 30;
 const DEFAULT_IDLE_POLL_SECONDS = 1800;
 const SCOREBOARD_SLOT_NAMES = ["A", "B", "C"];
+const DEFAULT_SCOREBOARD_SLOT_RULES = [
+  { slot: "A", pattern: /\b(centre|center)\s+court\b/i },
+  { slot: "B", pattern: /\b(no\.?\s*1|court\s*1|1)\s+court\b|\bcourt\s+(no\.?\s*)?1\b/i },
+  { slot: "C", pattern: /\b(no\.?\s*2|court\s*2|2)\s+court\b|\bcourt\s+(no\.?\s*)?2\b/i }
+];
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
 const EXCLUDED_COMPETITION_TERMS = new Set([
   "wta",
@@ -229,6 +234,33 @@ function getEventSearchText(event) {
   return [event?.name, event?.group, pathText].filter(Boolean).join(" ");
 }
 
+function getEventCourtText(event) {
+  const candidateFields = [
+    event?.court,
+    event?.courtName,
+    event?.venue,
+    event?.venueName,
+    event?.location,
+    event?.group,
+    event?.name,
+    event?.englishName
+  ];
+  const pathText = Array.isArray(event?.path)
+    ? event.path
+        .flatMap(item => [item?.name, item?.englishName, item?.termKey])
+        .filter(Boolean)
+        .join(" ")
+    : "";
+
+  return [...candidateFields, pathText].filter(Boolean).join(" ");
+}
+
+function inferScoreboardSlot(event) {
+  const courtText = getEventCourtText(event);
+  const rule = DEFAULT_SCOREBOARD_SLOT_RULES.find(item => item.pattern.test(courtText));
+  return rule?.slot ?? null;
+}
+
 function isRelevantAtpEvent(item) {
   const event = item?.event;
   const terms = getEventPathTerms(event);
@@ -324,6 +356,7 @@ function normalizeMatchItem(item) {
     shortLabel: createShortLabel(item.playerA, item.playerB),
     score: item.score ?? null,
     serve: item.serve ?? null,
+    scoreboardSlot: item.scoreboardSlot ?? null,
     playerA: {
       id: item.playerA?.id ?? null,
       name: item.playerA?.name ?? null,
@@ -355,6 +388,7 @@ async function fetchMatches() {
       state: item.event?.state === "STARTED" ? "live" : "upcoming",
       score: buildScore(item),
       importance: createImportance(item.event),
+      scoreboardSlot: inferScoreboardSlot(item.event),
       serve: item.liveData
         ? item.liveData?.statistics?.sets?.homeServe
           ? "player"
@@ -546,6 +580,23 @@ function selectScoreboardSlotMatches(liveMatches, state = null) {
 
     return null;
   });
+
+  for (let index = 0; index < slotKeys.length; index += 1) {
+    if (slotKeys[index]) {
+      continue;
+    }
+
+    const slotName = SCOREBOARD_SLOT_NAMES[index];
+    const nextMatch = liveMatches.find(match => {
+      return match.scoreboardSlot === slotName && !usedKeys.has(getMatchKey(match));
+    });
+
+    if (nextMatch) {
+      const nextKey = getMatchKey(nextMatch);
+      slotKeys[index] = nextKey;
+      usedKeys.add(nextKey);
+    }
+  }
 
   for (let index = 0; index < slotKeys.length; index += 1) {
     if (slotKeys[index]) {
