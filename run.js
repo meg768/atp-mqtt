@@ -523,8 +523,49 @@ function createScoreboardText(liveMatches, state = null) {
   return formatScoreboardMatch(match);
 }
 
-function createScoreboardSlotText(liveMatches, index) {
-  const match = liveMatches[index] ?? null;
+function selectScoreboardSlotMatches(liveMatches, state = null) {
+  const matchesByKey = new Map(
+    liveMatches.map(match => [getMatchKey(match), match])
+  );
+
+  if (!state) {
+    return SCOREBOARD_SLOT_NAMES.map((_, index) => liveMatches[index] ?? null);
+  }
+
+  const previousSlotKeys = Array.isArray(state.scoreboardSlotKeys)
+    ? state.scoreboardSlotKeys
+    : [];
+  const usedKeys = new Set();
+  const slotKeys = SCOREBOARD_SLOT_NAMES.map((_, index) => {
+    const previousKey = previousSlotKeys[index] ?? null;
+
+    if (previousKey && matchesByKey.has(previousKey)) {
+      usedKeys.add(previousKey);
+      return previousKey;
+    }
+
+    return null;
+  });
+
+  for (let index = 0; index < slotKeys.length; index += 1) {
+    if (slotKeys[index]) {
+      continue;
+    }
+
+    const nextMatch = liveMatches.find(match => !usedKeys.has(getMatchKey(match)));
+
+    if (nextMatch) {
+      const nextKey = getMatchKey(nextMatch);
+      slotKeys[index] = nextKey;
+      usedKeys.add(nextKey);
+    }
+  }
+
+  state.scoreboardSlotKeys = slotKeys;
+  return slotKeys.map(key => key ? matchesByKey.get(key) ?? null : null);
+}
+
+function createScoreboardSlotText(match) {
 
   if (!match) {
     return "Ingen pågående match";
@@ -584,13 +625,17 @@ function createSummarySnapshot(matches) {
 
 function createMqttMessages(snapshot, topicPrefix, state = null) {
   const liveMatches = snapshot.sections.live.items;
+  const scoreboardSlotMatches = selectScoreboardSlotMatches(
+    [...liveMatches].sort(compareByImportance),
+    state
+  );
 
   return [
     { topic: topicPrefix, payload: snapshot },
     { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(liveMatches, state) },
     ...SCOREBOARD_SLOT_NAMES.map((slotName, index) => ({
       topic: `${topicPrefix}/scoreboard/${slotName}`,
-      payload: createScoreboardSlotText(liveMatches, index)
+      payload: createScoreboardSlotText(scoreboardSlotMatches[index])
     })),
     { topic: `${topicPrefix}/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) }
   ];
@@ -854,7 +899,8 @@ async function executePoll(argv) {
     lastPayloadByTopic: new Map(),
     lastScoreSignature: null,
     lastScoreByMatchKey: new Map(),
-    scoreboardMatchKey: null
+    scoreboardMatchKey: null,
+    scoreboardSlotKeys: []
   };
 
   while (true) {
