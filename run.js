@@ -15,6 +15,7 @@ const DEFAULT_MAX_LIVE_MATCHES = 3;
 const DEFAULT_MAX_UPCOMING_MATCHES = 3;
 const DEFAULT_LIVE_POLL_SECONDS = 30;
 const DEFAULT_IDLE_POLL_SECONDS = 1800;
+const SCOREBOARD_SLOT_NAMES = ["A", "B", "C"];
 const INCLUDED_COMPETITION_TERMS = new Set(["atp", "grand_slam"]);
 const EXCLUDED_COMPETITION_TERMS = new Set([
   "wta",
@@ -522,6 +523,16 @@ function createScoreboardText(liveMatches, state = null) {
   return formatScoreboardMatch(match);
 }
 
+function createScoreboardSlotText(liveMatches, index) {
+  const match = liveMatches[index] ?? null;
+
+  if (!match) {
+    return index === 0 ? "Inga live-matcher" : "Inga fler live-matcher";
+  }
+
+  return formatScoreboardMatch(match);
+}
+
 function createSummarySnapshot(matches) {
   const { liveMatches, upcomingMatches } = selectImportantMatches(matches);
   const headline = createHeadline({ liveMatches, upcomingMatches });
@@ -572,9 +583,15 @@ function createSummarySnapshot(matches) {
 }
 
 function createMqttMessages(snapshot, topicPrefix, state = null) {
+  const liveMatches = snapshot.sections.live.items;
+
   return [
     { topic: topicPrefix, payload: snapshot },
-    { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(snapshot.sections.live.items, state) },
+    { topic: `${topicPrefix}/scoreboard`, payload: createScoreboardText(liveMatches, state) },
+    ...SCOREBOARD_SLOT_NAMES.map((slotName, index) => ({
+      topic: `${topicPrefix}/scoreboard/${slotName}`,
+      payload: createScoreboardSlotText(liveMatches, index)
+    })),
     { topic: `${topicPrefix}/upcoming`, payload: createUpcomingText(snapshot.sections.upcoming.items) }
   ];
 }
