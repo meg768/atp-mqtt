@@ -517,7 +517,7 @@ function createScoreboardText(liveMatches, state = null) {
   const match = selectScoreboardMatch(liveMatches, state);
 
   if (!match) {
-    return "Inga live-matcher";
+    return "Inga pågående matcher";
   }
 
   return formatScoreboardMatch(match);
