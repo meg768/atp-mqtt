@@ -1,125 +1,89 @@
 # atp-mqtt
 
-Det här repot hämtar ATP-/Grand Slam-matchdata direkt från den publika Kambi/Svenska Spel-feeden och kan publicera en kort headline samt JSON-data till MQTT.
+Node.js service that fetches ATP and men's Grand Slam match data from the public Kambi/Svenska Spel tennis feed and publishes a compact live tennis snapshot to MQTT.
 
-Första versionen fokuserar på sådant som passar bra på en display:
+The service is standalone. It does not depend on `tennis.egelberg.se`, `atp-tennis`, or the MariaDB-backed ATP API.
 
-- live-matcher
-- en kort huvudrad
+## What It Publishes
 
-Det finns ännu ingen separat nyhetsfeed i projektet. "Senaste nytt" betyder därför live-läge.
+The project is tuned for display-style consumers:
 
-Projektet är fristående och beror inte på `tennis.egelberg.se` eller något annat lokalt ATP-projekt.
+- a full JSON snapshot
+- one rotating scoreboard text
+- three fixed scoreboard slot texts
+- one upcoming-match text
 
-## Datakälla
+It fetches the broad tennis feed because Grand Slam rows are not always exposed under the narrower ATP feed, then filters down to ATP-family and men's Grand Slam matches. Obvious WTA, Challenger, UTR, qualifier, women's, and doubles rows are excluded.
 
-Standardkälla är den publika tennis-feeden via Kambi/Svenska Spel:
+## Requirements
 
-- `GET https://eu1.offering-api.kambicdn.com/offering/v2018/svenskaspel/listView/tennis/all/all/all/matches.json`
+- Node.js 18+
+- npm
+- MQTT broker, when publishing
 
-Projektet lägger själv på query-parametrar som `channel_id`, `client_id`, `lang`, `market`, `useCombined` och `useCombinedLive`, och normaliserar sedan svaret till ett enklare internt format.
-
-Eftersom Grand Slam-turneringar hos Kambi inte alltid ligger under `/tennis/atp` hämtar projektet den bredare tennis-feeden och filtrerar sedan till ATP- och Grand Slam-events. Uppenbara WTA-, Challenger-, UTR-, kval-, dam- och dubbelmatcher filtreras bort.
-
-För MQTT-output väljer projektet bara de viktigaste matcherna:
-
-- Grand Slam före vanlig ATP
-- Masters/1000 och sena rundor får extra prioritet om feeden exponerar sådan text
-- standardgräns: högst 3 live-matcher
-- standardgräns: högst 3 kommande matcher
-
-Gränserna kan ändras med `ATP_MQTT_MAX_LIVE` och `ATP_MQTT_MAX_UPCOMING`.
-
-Kontinuerlig publicering pollar snabbare när matcher är live:
-
-- standard live: var 30:e sekund
-- standard utan live-match: var 30:e minut
-- ändra med `ATP_MQTT_LIVE_POLL_SECONDS` och `ATP_MQTT_IDLE_POLL_SECONDS`
-- MQTT publiceras bara när score-signaturen för de utvalda live-matcherna ändras, plus första publiceringen efter processstart
-
-Den uppströmsfeeden innehåller bland annat:
-
-- `start`
-- `tournament`
-- `state` (`live` eller `upcoming`)
-- `score`
-- `serve`
-- `playerA`
-- `playerB`
-
-Exempel:
-
-```json
-[
-  {
-    "start": "2026-05-15T17:23:00Z",
-    "tournament": "Rom",
-    "state": "live",
-    "score": "6-2 5-7 4-2 [40-AD]",
-    "serve": "opponent",
-    "playerA": {
-      "name": "Jannik Sinner",
-      "odds": 1.06,
-      "id": "S0AG"
-    },
-    "playerB": {
-      "name": "Daniil Medvedev",
-      "odds": 9,
-      "id": "MM58"
-    }
-  }
-]
-```
-
-## Körning
-
-Installera beroenden:
+## Install
 
 ```bash
 npm install
 ```
 
-Lokal körning:
+## Configure
+
+Copy `.env.example` to `.env` and adjust values:
+
+```env
+MQTT_URL=mqtt://127.0.0.1:1883
+MQTT_TOPIC=atp
+MQTT_USERNAME=
+MQTT_PASSWORD=
+```
+
+Optional environment variables:
+
+- `MQTT_TOPIC_PREFIX`: alternate topic-prefix input; `MQTT_TOPIC` wins
+- `MQTT_CLIENT_ID`: default `atp-mqtt-<hostname>-<pid>`
+- `MQTT_RETAIN`: defaults to `true`
+- `ODDSET_API_URL`: override the upstream Kambi/Svenska Spel URL
+- `ATP_MQTT_MAX_LIVE`: default `3`
+- `ATP_MQTT_MAX_UPCOMING`: default `3`
+- `ATP_MQTT_LIVE_POLL_SECONDS`: default `30`
+- `ATP_MQTT_IDLE_POLL_SECONDS`: default `1800`
+
+## Run
+
+Fetch once and print a local table:
 
 ```bash
 npm run fetch
 ```
 
-Eller direkt:
+or:
 
 ```bash
 node run.js
 ```
 
-Kontinuerlig publicering:
+Publish once to MQTT:
+
+```bash
+npm run publish
+```
+
+Run continuously and publish when the selected match state changes:
+
+```bash
+npm run publish:poll
+```
+
+or:
 
 ```bash
 node run.js --publish --poll
 ```
 
-## MQTT
+## MQTT Topics
 
-Publicera till MQTT:
-
-```bash
-node run.js --publish
-```
-
-Exempel med miljövariabler:
-
-```bash
-MQTT_URL=mqtt://127.0.0.1:1883 \
-MQTT_TOPIC=atp \
-MQTT_USERNAME=myuser \
-MQTT_PASSWORD=secret \
-node run.js --publish
-```
-
-Projektet laddar `.env` automatiskt via `dotenv`.
-
-`MQTT_TOPIC` i `.env` anger exakt topic. Standard är `atp`.
-
-Publicerade topics:
+With `MQTT_TOPIC=atp`, the service publishes:
 
 - `atp`
 - `atp/scoreboard`
@@ -128,46 +92,36 @@ Publicerade topics:
 - `atp/scoreboard/C`
 - `atp/upcoming`
 
-`atp` innehåller hela snapshotten med samma struktur som appen redan använder internt: `summary`-fälten plus `sections.live.items` och `sections.upcoming.items`.
-`atp/scoreboard` visar en live-match i taget med score och odds, till exempel `Tiafoe• vs Arnaldi 6-7 7-6 [40-0] (1.93/1.87)`. Punkten markerar vem som servar. I watch-läge väljs en match där poängen ändrats bland de utvalda live-matcherna; om flera ändrats undviker den att visa samma match igen när en annan ändrad match finns.
-`atp/scoreboard/A`, `atp/scoreboard/B` och `atp/scoreboard/C` visar fasta slotar för de tre utvalda live-matcherna. Om feeden exponerar court-text prioriteras huvudbanor först, sedan andra stora namngivna banor, sedan numrerade banor där lägre nummer går före högre nummer, till exempel `Court 2` före `Court 14`. I poll-läge ligger en match kvar på samma bokstav tills den inte längre är live; tomma slotar fylls sedan på med rätt court-prioritet eller de viktigaste återstående live-matcherna. Om en slot saknar match publiceras `Ingen pågående match` så gamla retained-värden rensas.
-`atp/upcoming` innehåller max tre kommande matcher i startordning, till exempel `21:45 Sinner - Alcaraz • 22:33 Tiafoe - Ruud`. Om matchen är nästa lokala dag prefixas den med `I morgon`, till exempel `I morgon 10:00 Sinner - Alcaraz`.
-Exempel:
+`atp` contains the full JSON snapshot with `headline`, `totals`, `nextMatch`, `metadata`, `sections.live.items`, and `sections.upcoming.items`.
 
-```json
-{
-  "timestamp": "2026-05-15T20:00:00.000Z",
-  "headline": "Sinner-Medvedev 6-2 5-7 4-2 [40-AD] • Alcaraz-Djokovic 6-4 3-2 [15-0]",
-  "totals": {
-    "matches": 2,
-    "live": 2,
-    "upcoming": 0,
-    "availableMatches": 7,
-    "availableLive": 2,
-    "availableUpcoming": 5
-  },
-  "nextMatch": {
-    "start": "2026-05-15T17:23:00Z",
-    "tournament": "Rom",
-    "state": "live",
-    "label": "Jannik Sinner - Daniil Medvedev"
-  },
-  "metadata": {
-    "source": "Kambi/Svenska Spel ATP Oddset",
-    "timezone": "Europe/Stockholm",
-    "upstream": "eu1.offering-api.kambicdn.com",
-    "selection": {
-      "maxLive": 3
-    }
-    }
-  },
-  "sections": {
-    "live": {
-      "items": []
-    },
-    "upcoming": {
-      "items": []
-    }
-  }
-}
+`atp/scoreboard` contains one rotating live-match text. In poll mode it prefers a selected live match whose score changed, and avoids showing the same changed match again when another changed match is available.
+
+`atp/scoreboard/A`, `atp/scoreboard/B`, and `atp/scoreboard/C` contain fixed scoreboard slots for selected live matches. Slots are sticky while a match remains live. Court text can influence slot priority for major courts and numbered courts.
+
+`atp/upcoming` contains up to three upcoming matches in local start-time order. Tomorrow's matches are prefixed with `I morgon`.
+
+## Upstream Source
+
+Default source:
+
+```text
+https://eu1.offering-api.kambicdn.com/offering/v2018/svenskaspel/listView/tennis/all/all/all/matches.json
 ```
+
+The service adds Kambi/Svenska Spel query parameters such as `channel_id`, `client_id`, `lang`, `market`, `useCombined`, and `useCombinedLive`.
+
+## Polling Behavior
+
+In `--poll` mode:
+
+- the first successful run publishes retained MQTT values
+- later runs publish only when the selected live/upcoming score signature changes
+- polling is fast while any selected match is live
+- polling is slow when no match is live
+- individual MQTT topics are also skipped when their serialized payload has not changed
+
+## Notes
+
+- CLI output and display strings are Swedish-oriented for Magnus' local display setup.
+- The feed is betting/offering data, not the canonical ATP API.
+- Upstream availability and schema can change without warning.
