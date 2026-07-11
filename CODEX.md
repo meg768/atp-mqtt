@@ -119,6 +119,7 @@ The root `atp` topic is JSON. Scoreboard and upcoming topics are plain text.
 - Slots stay sticky while a match remains live.
 - Empty slots publish `Ingen pågående match` so retained stale values are cleared.
 - `atp/scoreboard` rotates toward changed matches and avoids repeating the same changed match if another changed match is available.
+- Scoreboard text is intentionally compact for small scrolling displays. As of 2026-07-10, the server is marked by a bullet adjacent to the serving player's last name in `createScoreboardLabel()`. Confirm the exact punctuation in `run.js` before changing it; Magnus tends to choose this by seeing live display output.
 
 ## Deployment Notes
 
@@ -146,7 +147,7 @@ ssh pi@pi-kato 'cd /home/pi/atp-mqtt && git pull --ff-only origin main'
 
 ## Gotchas
 
-- Global `codex-chat/CONTEXT.md` has older notes that mention topics such as `atp/summary` and `atp/live`; current code publishes the scoreboard topics listed above.
+- Global `codex-chat/CONTEXT.md` should only carry the cross-project summary; this file is the source of truth for the detailed `atp-mqtt` contract.
 - This service uses betting/offering feed data, not canonical ATP API data.
 - `requestJson()` falls back to `curl` when built-in `fetch` fails or is unavailable.
 - CLI/table output and MQTT display text are Swedish-oriented by design.
